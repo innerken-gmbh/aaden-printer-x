@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "169167876904",
+    "project_id": "aaden-saas",
+    "storage_bucket": "aaden-saas.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:169167876904:android:fea9eb98e9ee6a55cc161d",
+        "android_client_info": {
+          "package_name": "com.aaden.compose.antelope"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "169167876904-eschphokdd95eu0fjfcbjlbgnnmvkosj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqqM_IjESan6UJShPjq6esrUIxnE6adRo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "169167876904-8giegdm3q0df0s1t5n619e45a52mteir.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
