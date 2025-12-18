@@ -170,6 +170,8 @@ dependencies {
 
     // Lottie for animations
     implementation("com.airbnb.android:lottie-compose:6.6.6")
+
+    implementation("com.jakewharton:process-phoenix:2.1.2")
 }
 
 kapt {

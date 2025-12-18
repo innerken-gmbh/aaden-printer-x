@@ -60,6 +60,7 @@ import com.innerken.aadenprinterx.page.IndexPage
 import com.innerken.aadenprinterx.page.SettingPage
 import com.innerken.aadenprinterx.ui.theme.AadenprinterxTheme
 import com.innerken.aadenprinterx.viewmodel.PrinterViewModel
+import com.jakewharton.processphoenix.ProcessPhoenix
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import java.math.BigDecimal
@@ -72,12 +73,7 @@ object RouteName {
     const val Setting = "setting"
 }
 
-fun restartApplication(context: Context) {
-    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-    context.startActivity(intent)
-    Runtime.getRuntime().exit(0)
-}
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -119,14 +115,14 @@ class MainActivity : ComponentActivity() {
                             activity?.moveTaskToBack(true)
                         },
                         onDoubleClick = {
-                            restartApplication(context)
+                            restartApplication()
                         }) {
                         navController.navigate(Setting)
                     }
                 }
                 composable(Setting) {
                     SettingPage(printerViewModel, back = {navController.popBackStack()}) {
-                        restartApplication(context)
+                        restartApplication()
                     }
                 }
             }
@@ -165,6 +161,10 @@ class MainActivity : ComponentActivity() {
                     )
         }
 
+    }
+
+    private fun restartApplication() {
+        ProcessPhoenix.triggerRebirth(this)
     }
 
 }
