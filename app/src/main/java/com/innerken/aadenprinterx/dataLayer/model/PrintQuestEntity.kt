@@ -20,6 +20,7 @@ data class PrintQuestEntity(
                 "</PRINTER>"
     }
 
+    //单据预览功能，调用可以直接生成可预览账单
     fun getDomList(): Element? {
         val builder = DocumentBuilderFactory.newInstance()
         val b = builder.newDocumentBuilder()

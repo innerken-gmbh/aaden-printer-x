@@ -31,20 +31,20 @@ android {
         applicationId = "com.innerken.aadenprinterx"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.1"
+        versionCode = 12
+        versionName = "1.0.10"
 
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
-        signingConfig = signingConfigs.getByName("InnerKenJks")
+       signingConfig = signingConfigs.getByName("InnerKenJks")
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("InnerKenJks")
+           signingConfig = signingConfigs.getByName("InnerKenJks")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
@@ -121,6 +121,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
+    //商米打印库
     implementation("com.sunmi:printerx:1.0.18")
 
     // dialog

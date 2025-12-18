@@ -35,6 +35,7 @@ import java.util.regex.Matcher
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.CoroutineContext
+import kotlin.times
 
 @Singleton
 class PrinterRepository @Inject constructor(
@@ -53,24 +54,34 @@ class PrinterRepository @Inject constructor(
         _status.value = newStatus
         _countText.value = "$fail/${fail + success}"
     }
-
     var printerManager: PrinterManager? = null
 
+    //这里是之前集成在我们自己的快消软件
     val printQuests: Flow<List<PrintQuestEntity>> = flow {
-        while (true) {
-            val newPrintQuest = getShangMiPrintQuest()  // 你的获取方法
+        while (true) { //这里之前集成在我们软件上是做了一个开关，可以由商户自行决定是否打印
+            val newPrintQuest = getShangMiPrintQuest()
             emit(newPrintQuest)
-            delay(1000) // 每秒刷新一次队列
+            delay(RefreshIntervalMs)
+        }
+    }
+
+    //获取之前历史打印内容
+    val oldPrintRecord: Flow<List<PrintQuestEntity>> = flow {
+        while (true) {
+            val newPrintQuest = getOldPrintRecord()
+            emit(newPrintQuest)
+            delay(RefreshIntervalMs * 15)
         }
     }
 
     private val printQueue: MutableMap<Int, String> = mutableMapOf()
 
+    //执行打印操作
     fun tryPrint(p: PrintQuestEntity) {
         if (!printQueue.containsKey(p.id) && p.content != null) {
             printQueue[p.id] = p.content
             if (p.printerGroupId != 8 && p.content.isNotBlank()) {
-                doPrint(p.content)
+                doPrint(p.content) //执行
             }
         } else {
             Log.e("DISCARD", "ID:${p.id}")
@@ -122,14 +133,7 @@ class PrinterRepository @Inject constructor(
         }
     }
 
-    val oldPrintRecord: Flow<List<PrintQuestEntity>> = flow {
-        while (true) {
-            val newPrintQuest = getOldPrintRecord()
-            emit(newPrintQuest)
-            delay(RefreshIntervalMs * 15)
-        }
-    }
-
+    //钱箱
     fun openDrawer() {
         try {
             printerManager?.openDrawer()
@@ -174,6 +178,7 @@ class PrinterRepository @Inject constructor(
         return SafeRequest.handle { printerService.getRestaurantInfo() }?.get(0)
     }
 
+    //获取餐馆信息来判定ip是否正确
     suspend fun checkConnection(): Boolean {
         return try {
             val info = getRestaurantInfo()

@@ -33,8 +33,18 @@ class PrinterViewModel @Inject constructor(
     val status = printerRepository.status
     val countText = printerRepository.countText
 
+    val printQuestList = mutableStateListOf<PrintQuestEntity>()
+
+    //这里是之前集成在我们自己的快消软件，在应用创建的时候启动数据轮询，
 //    init {
-//        viewModelScope.launch {
+//        viewModelScope.launch { //获取旧数据
+//            printerRepository.oldPrintRecord.collect {
+//                printQuestList.clear()
+//                printQuestList.addAll(it)
+//            }
+//        }
+
+//        viewModelScope.launch { //拉取新数据
 //            printerRepository.printQuests.collect { printerQuests ->
 //                if (printerQuests.isNotEmpty() && printerRepository.havePrinterManager()) {
 //                    printerQuests.forEach { quest ->

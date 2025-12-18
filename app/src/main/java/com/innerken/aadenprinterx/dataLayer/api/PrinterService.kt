@@ -24,19 +24,12 @@ interface PrinterService {
         @Field("message") message: String = "ShangMi-NewVersion",
     ): IKResponse<Any>
 
+    //我们自己集成在前端的重打接口
     @GET("Printer.php?op=reprintWithDefault")
     suspend fun reprintWithDefault(
         @Query("id") id: Int,
         @Query("_targetPrinter") targetPrinterId: String,
     ): IKResponse<String>
-
-    @GET("Printer.php?op=printAll")
-    suspend fun doPrintNow(): IKResponse<Any>
-
-    @GET("Printer.php?op=find")
-    suspend fun findPrintQuest(
-        @Query("id") id: Int,
-    ): IKResponse<PrintQuestEntity>
 
     @GET("Restaurant.php?op=view")
     suspend fun getRestaurantInfo(): IKResponse<List<RestaurantInfoEntity>>

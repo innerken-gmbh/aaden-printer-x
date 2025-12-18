@@ -123,12 +123,18 @@ class PrintExecutor(private val printer: PrinterSdk.Printer) {
             .replace("Ä","Ae").replace("Ö","Oe").replace("Ü","Ue").replace("ß","ss")
     }
 
+    //新增缺少的换行
+    private fun replaceNoBRToken(content: String): String {
+        return content.replace("</C>", "</C><BR>").replace("</CB>", "</CB><BR>")
+    }
+
     private fun render(content: String): String {
         var text = content.replace("\n","<BR>")
         text = replaceGermanLetter(text)
         text = replaceLineToken(text)
         text = replaceLRToken(text)
         text = replaceTable(text)
+        text = replaceNoBRToken(text)
         return text
     }
 
@@ -140,6 +146,7 @@ class PrintExecutor(private val printer: PrinterSdk.Printer) {
     fun doPrint(content: String, lineLength: Int) {
         this.lineLength = lineLength
         val text = render(content)
+        //进入翻译器，转化成一个一个的action，然后逐行打印
         PrintTranslator.translate(text, bonImage, printer).forEach { it() }
     }
 

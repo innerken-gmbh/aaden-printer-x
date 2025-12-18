@@ -54,7 +54,6 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.innerken.aadenprinterx.RouteName.Index
 import com.innerken.aadenprinterx.RouteName.Setting
 import com.innerken.aadenprinterx.modules.GlobalSettingManager
-import com.innerken.aadenprinterx.modules.network.ServiceDiscover
 import com.innerken.aadenprinterx.modules.printer.PrinterManager
 import com.innerken.aadenprinterx.PrinterXService
 import com.innerken.aadenprinterx.page.IndexPage
@@ -92,17 +91,8 @@ class MainActivity : ComponentActivity() {
         val printerManager = PrinterManager(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        ServiceDiscover(this) {
-            it.host.hostAddress?.let { it1 ->
-                if (globalSettingManager.externalCustomerDisplayIp.isBlank()) {
-                    globalSettingManager.externalCustomerDisplayIp = it1
-                }
-            }
-        }
 
         val printerViewModel: PrinterViewModel by viewModels()
-
-
         printerViewModel.initPrinterManager(printerManager)
 
         setContent {

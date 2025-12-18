@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,11 @@ fun IndexPage(
 ) {
     val status by printerViewModel.status.collectAsState()
     val countText by printerViewModel.countText.collectAsState()
+
+    val context = LocalContext.current
+    val versionName = context.packageManager
+        .getPackageInfo(context.packageName, 0)
+        .versionName
 
     Box(
         modifier = Modifier
@@ -70,7 +76,15 @@ fun IndexPage(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "v$versionName",
+                color = Color.Gray,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,

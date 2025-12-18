@@ -52,24 +52,14 @@ class PrinterManager(private val context: Context) {
                 val executor = PrintExecutor(currentPrinter)
                 executor.bonImage = bonImage
                 val lineLength = overrideLineLength ?: run {
-                    //val paperType = currentPrinter.lineApi().printerPaper
                     val paperType = currentPrinter.queryApi().getInfo(PrinterInfo.PAPER)
-                    if (paperType == "384") 32 else 48
+                    if (paperType == "384") 32 else 48 //384像素对应55mm纸
                 }
-//                Handler(Looper.getMainLooper()).post {
-//                    Toast.makeText(context, "正在打印", Toast.LENGTH_SHORT).show()
-//                }
                 executor.doPrint(content, lineLength)
             } else if (currentPrinter == null) {
-                Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(context, "打印失败：Printer对象为空", Toast.LENGTH_SHORT).show()
-                }
                 Log.e("PrintError", "打印失败：Printer对象为空")
             }
         } catch (e: Exception) {
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context, "打印失败", Toast.LENGTH_SHORT).show()
-            }
             Log.e("PrintError", "打印失败: ${e.message}", e)
         }
     }

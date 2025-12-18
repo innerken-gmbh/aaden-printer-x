@@ -21,185 +21,202 @@ class PrintTranslator {
         private var qrContent: String? = null
         private var barContent: String? = null
 
+        data class TextStyleState(
+            var size: Int = 24,
+            var bold: Boolean = false
+        )
+
+        data class BaseStyleState(
+            var align: Align = Align.LEFT
+        )
+
+        private fun buildTextStyle(state: TextStyleState): TextStyle =
+            TextStyle.getStyle()
+                .setTextSize(state.size)
+                .enableBold(state.bold)
+
+        private fun buildBaseStyle(state: BaseStyleState): BaseStyle =
+            BaseStyle.getStyle()
+                .setAlign(state.align)
         fun translate(
             content: String,
             bonImage: Bitmap?,
             printer: PrinterSdk.Printer
         ): List<() -> Unit> {
-            var text = content
             val actions = mutableListOf<() -> Unit>()
-
+            var text = content
 
             val qrMatch = qrPattern.find(text)
             val barMatch = barPattern.find(text)
             qrContent = qrMatch?.groupValues?.get(1)
-            println("11111$qrContent")
             barContent = barMatch?.groupValues?.get(1)
-            if (qrContent != null) {
-                text = content.replace(qrContent!!, "")
-            }
-            if (barContent != null) {
-                text = content.replace(barContent!!, "")
-            }
+            if (qrContent != null) text = text.replace(qrContent!!, "")
+            if (barContent != null) text = text.replace(barContent!!, "")
 
-            var currentBaseStyle = BaseStyle.getStyle()
-            var currentTextStyle = TextStyle.getStyle()
+            val textState = TextStyleState()
+            val baseState = BaseStyleState()
 
-            // 初始化指令
-            actions.add { printer.lineApi().initLine(currentBaseStyle)}
+            actions.add { printer.lineApi().initLine(BaseStyle.getStyle()) }
 
-            var textLeft = text
-            while (textLeft.isNotEmpty()) {
-                val tokenMatch = tokenPattern.find(textLeft)
-                if (tokenMatch != null) {
-                    val tokenFull = tokenMatch.value
-                    val tokenName = tokenMatch.groupValues[1]
-                    val tokenAt = textLeft.indexOf(tokenFull)
-                    val tokenLen = tokenFull.length
+            val lines = text.split("<BR>")
+            for (line in lines) {
+                val segments = mutableListOf<Pair<String, TextStyle>>()
 
-                    // 1) 打印 token 前面的文本（保留空格），使用当前样式
-                    val before = textLeft.substring(0, tokenAt)
-                    if (before.isNotEmpty()) {
-                        // 注意：这里闭包会在 later 执行，读取到当时的 currentTextStyle/currentBaseStyle（引用）
-                        actions.add {
-                            // 每次打印文本前确保 baseStyle 已被初始化到 printer
-                            printer.lineApi().initLine(currentBaseStyle)
-                            printer.lineApi().printText(before, currentTextStyle)
-                        }
+                var remaining = line
+
+                if (remaining.isEmpty()) {
+                    actions.add {
+                        printer.lineApi().initLine(BaseStyle.getStyle())
+                        printer.lineApi().printText(" ", TextStyle.getStyle())
                     }
+                    continue
+                }
 
-                    // 2) 根据 token 更新样式或执行立即动作
-                    when (tokenName) {
-                        "BR", "/QR" -> {
+                while (remaining.isNotEmpty()) {
+                    val tokenMatch = tokenPattern.find(remaining)
+                    if (tokenMatch != null) {
+                        val tokenFull = tokenMatch.value
+                        val tokenName = tokenMatch.groupValues[1]
+                        val tokenAt = remaining.indexOf(tokenFull)
+                        val tokenLen = tokenFull.length
+
+                        // 打印 token 前的内容（行内累积）
+                        val before = remaining.substring(0, tokenAt)
+                        if (before.isNotEmpty()) {
+                            segments.add(before to buildTextStyle(textState))
+                        }
+
+                        if (segments.isNotEmpty()) {
+                            val segCopy = segments.toList()
+                            val baseCopy = buildBaseStyle(baseState)
                             actions.add {
-                                printer.lineApi().initLine(currentBaseStyle)
+                                printer.lineApi().initLine(baseCopy)
+                                segCopy.forEach { (t, s) -> printer.lineApi().addText(t, s) }
+                                printer.lineApi().printText("\n", segCopy.last().second)
                             }
+                            segments.clear()
                         }
-
-                        "CUT" -> {
-                            actions.add { printer.lineApi().autoOut() } // or cutPaper if available
-                        }
-
-                        "SMALL" -> {
-                            actions.add { currentTextStyle = TextStyle.getStyle().setTextSize(18) }
-                        }
-
-                        "/SMALL" -> {
-                            actions.add { currentTextStyle = TextStyle.getStyle().setTextSize(24) }
-                        }
-
-                        "CB" -> {
-                            actions.add {
-                                currentBaseStyle = BaseStyle.getStyle().setAlign(Align.CENTER)
-                                currentTextStyle = TextStyle.getStyle().setTextSize(48).enableBold(true)
+                        when (tokenName) {
+                            "CUT" -> {
+                                printer.lineApi().autoOut()
                             }
-                        }
 
-                        "/CB" -> {
-                            actions.add {
-                                currentBaseStyle = BaseStyle.getStyle().setAlign(Align.LEFT)
-                                currentTextStyle = TextStyle.getStyle().setTextSize(24).enableBold(false)
+                            // ----- 文本样式 -----
+                            "BOLD" -> textState.bold = true
+                            "/BOLD" -> textState.bold = false
+
+                            "B" -> textState.size = 48
+                            "/B" -> textState.size = 24
+
+                            "SMALL" -> textState.size = 18
+                            "/SMALL" -> textState.size = 24
+
+                            // ----- 行样式 -----
+                            "C" -> baseState.align = Align.CENTER
+                            "/C" -> baseState.align = Align.LEFT
+
+                            "RIGHT" -> baseState.align = Align.RIGHT
+                            "/RIGHT" -> baseState.align = Align.LEFT
+
+                            // ----- 文本+行样式 -----
+                            "CB" -> {
+                                baseState.align = Align.CENTER
+                                textState.size = 48
+                                textState.bold = true
                             }
-                        }
 
-                        "BOLD" -> {
-                            actions.add { currentTextStyle = TextStyle.getStyle().enableBold(true) }
-                        }
+                            "/CB" -> {
+                                baseState.align = Align.LEFT
+                                textState.size = 24
+                                textState.bold = false
+                            }
 
-                        "/BOLD" -> {
-                            actions.add { currentTextStyle = TextStyle.getStyle().enableBold(false) }
-                        }
+                            "QR" -> {
+                                qrContent?.let { content ->
+                                    var dotSize = 4
+                                    var errorLevel = ErrorLevel.L
 
-                        "C" -> {
-                            actions.add { currentBaseStyle = BaseStyle.getStyle().setAlign(Align.CENTER) }
-                        }
+                                    val sizePattern = Regex("<QRSIZE>(\\d+)</QRSIZE>")
+                                    val recPattern = Regex("<QREC>([MLH])</QREC>")
 
-                        "/C" -> {
-                            actions.add { currentBaseStyle = BaseStyle.getStyle().setAlign(Align.LEFT) }
-                        }
+                                    sizePattern.find(content)?.groupValues?.get(1)?.toIntOrNull()?.let { dotSize = it }
+                                    recPattern.find(content)?.groupValues?.get(1)?.let {
+                                        errorLevel = when (it.uppercase()) {
+                                            "L" -> ErrorLevel.L
+                                            "M" -> ErrorLevel.M
+                                            "Q" -> ErrorLevel.Q
+                                            "H" -> ErrorLevel.H
+                                            else -> ErrorLevel.L
+                                        }
+                                    }
 
-                        "RIGHT" -> {
-                            actions.add { currentBaseStyle = BaseStyle.getStyle().setAlign(Align.RIGHT) }
-                        }
+                                    val qrText = content
+                                        .replace(sizePattern, "")
+                                        .replace(recPattern, "")
+                                        .trim()
 
-                        "/RIGHT" -> {
-                            actions.add { currentBaseStyle = BaseStyle.getStyle().setAlign(Align.LEFT) }
-                        }
-
-                        "QR" -> {
-                            qrContent?.let { content ->
-                                var dotSize = 4
-                                var errorLevel = ErrorLevel.L
-
-                                val sizePattern = Regex("<QRSIZE>(\\d+)</QRSIZE>")
-                                val recPattern = Regex("<QREC>([MLH])</QREC>")
-
-                                sizePattern.find(content)?.groupValues?.get(1)?.toIntOrNull()?.let { dotSize = it }
-                                recPattern.find(content)?.groupValues?.get(1)?.let {
-                                    errorLevel = when (it.uppercase()) {
-                                        "L" -> ErrorLevel.L
-                                        "M" -> ErrorLevel.M
-                                        "Q" -> ErrorLevel.Q
-                                        "H" -> ErrorLevel.H
-                                        else -> ErrorLevel.L
+                                    actions.add {
+                                        printer.lineApi().initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
+                                        printer.lineApi().printQrCode(
+                                            qrText,
+                                            QrStyle.getStyle()
+                                                .setDot(dotSize)
+                                                .setErrorLevel(errorLevel)
+                                        )
                                     }
                                 }
 
-                                val qrText = content
-                                    .replace(sizePattern, "")
-                                    .replace(recPattern, "")
-                                    .trim()
-
-                                actions.add {
-                                    printer.lineApi().initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
-                                    printer.lineApi().printQrCode(
-                                        qrText,
-                                        QrStyle.getStyle()
-                                            .setDot(dotSize)
-                                            .setErrorLevel(errorLevel)
-                                    )
-                                }
                             }
 
-                        }
 
-
-                        "BARCODE" -> {
-                            actions.add {
+                            "BARCODE" -> {
                                 barContent?.let {
-                                    printer.lineApi().initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
-                                    printer.lineApi().printBarCode(it, BarcodeStyle.getStyle())
+                                    actions.add {
+                                        printer.lineApi().initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
+                                        printer.lineApi().printBarCode(it, BarcodeStyle.getStyle())
+                                    }
                                 }
+                            }
+
+                            "BONLOGO" -> {
+                                bonImage?.let {
+                                    actions.add {
+                                        printer.lineApi().printBitmap(it, BitmapStyle.getStyle())
+                                    }
+                                }
+                            }
+
+                            "/BONLOGO", "/BARCODE", "/QR" -> {
+                                printer.lineApi().initLine(BaseStyle.getStyle())
+                            }
+
+                            "PLUGIN" -> {
+                                actions.add { printer.cashDrawerApi().open(null) }
+                            }
+
+                            else -> {
+
                             }
                         }
 
-                        "BONLOGO" -> {
-                            actions.add { bonImage?.let { printer.lineApi().printBitmap(it, BitmapStyle.getStyle()) } }
-                        }
+                        remaining = remaining.substring(tokenAt + tokenLen)
+                    } else {
+                        segments.add(remaining to buildTextStyle(textState))
 
-                        "PLUGIN" -> {
-                            actions.add { printer.cashDrawerApi().open(null) }
+                        val lastSegCopy = segments.toList()
+                        val lastBaseCopy = buildBaseStyle(baseState)
+                        actions.add {
+                            printer.lineApi().initLine(lastBaseCopy)
+                            lastSegCopy.forEach { (t, s) -> printer.lineApi().addText(t, s) }
+                            printer.lineApi().printText("\n", lastSegCopy.last().second)
                         }
-
-                        else -> {
-                            actions.add { printer.lineApi().initLine(currentBaseStyle) }
-                        }
+                        segments.clear()
+                        break
                     }
-
-                    // 3) 剩余文本继续循环
-                    textLeft = textLeft.substring(tokenAt + tokenLen)
-                } else {
-                    // 没有 token，直接打印剩余文本
-                    val finalText = textLeft
-                    actions.add {
-                        printer.lineApi().initLine(currentBaseStyle)
-                        printer.lineApi().printText(finalText, currentTextStyle)
-                    }
-                    break
                 }
             }
 
-            actions.add { printer.lineApi().printDividingLine(DividingLine.EMPTY, 30); }
+            actions.add { printer.lineApi().printDividingLine(DividingLine.EMPTY, 30) }
             actions.add { printer.lineApi().autoOut() }
 
             return actions
