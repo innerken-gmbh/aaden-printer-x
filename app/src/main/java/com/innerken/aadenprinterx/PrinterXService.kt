@@ -97,7 +97,7 @@ class PrinterXService : Service() {
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("打印服务正在运行")
             .setContentText("正在监控打印队列，确保及时打印...")
-            .setSmallIcon(R.drawable.ic_laucher)
+            .setSmallIcon(R.drawable.cottilogo)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
     }

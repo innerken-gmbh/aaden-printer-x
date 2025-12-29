@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Calculate
@@ -70,7 +71,7 @@ fun IndexPage(
         ) {
 
             Text(
-                text = "Aaden Printer X",
+                text = "Cotti Aaden Printer X",
                 color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
@@ -168,12 +169,12 @@ fun IndexPage(
                 .padding(top = 8.dp)
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_laucher),
+                painter = painterResource(R.drawable.cottilogo),
                 contentDescription = "Logo 1",
                 modifier = Modifier
                     .size(84.dp)
                     .padding(end = 4.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(8.dp))
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = {
