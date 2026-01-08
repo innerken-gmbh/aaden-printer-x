@@ -60,6 +60,7 @@ class PrintTranslator {
 
             val lines = text.split("<BR>")
             for (line in lines) {
+                var lineFlushed = false
                 val segments = mutableListOf<Pair<String, TextStyle>>()
 
                 var remaining = line
@@ -95,6 +96,7 @@ class PrintTranslator {
                                 printer.lineApi().printText("\n", segCopy.last().second)
                             }
                             segments.clear()
+                            lineFlushed = true
                         }
                         when (tokenName) {
                             "CUT" -> {
@@ -203,12 +205,14 @@ class PrintTranslator {
                     } else {
                         segments.add(remaining to buildTextStyle(textState))
 
-                        val lastSegCopy = segments.toList()
-                        val lastBaseCopy = buildBaseStyle(baseState)
-                        actions.add {
-                            printer.lineApi().initLine(lastBaseCopy)
-                            lastSegCopy.forEach { (t, s) -> printer.lineApi().addText(t, s) }
-                            printer.lineApi().printText("\n", lastSegCopy.last().second)
+                        if (!lineFlushed && segments.isNotEmpty()) {
+                            val lastSegCopy = segments.toList()
+                            val lastBaseCopy = buildBaseStyle(baseState)
+                            actions.add {
+                                printer.lineApi().initLine(lastBaseCopy)
+                                lastSegCopy.forEach { (t, s) -> printer.lineApi().addText(t, s) }
+                                printer.lineApi().printText("\n", lastSegCopy.last().second)
+                            }
                         }
                         segments.clear()
                         break
