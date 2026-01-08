@@ -97,7 +97,7 @@ class GlobalSettingManager @Inject constructor(@ApplicationContext context: Cont
     var blId: String by StringPD("", this)
 
     @SettingCategory("Network&Printer")
-    var ip by StringPD("192.168.168.1", this)
+    var ip by StringPD("192.168.121.20", this)
 
     @SettingCategory("Network&Printer")
     var usePrintService: Boolean by BooleanPD(false, this)
