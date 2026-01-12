@@ -20,12 +20,15 @@ import com.innerken.aadenprinterx.modules.network.SafeRequest
 import com.innerken.aadenprinterx.modules.printer.PrinterManager
 import com.innerken.aadenprinterx.modules.printingThis
 import com.innerken.aadenprinterx.modules.targetPattern
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.gildor.coroutines.okhttp.await
@@ -39,6 +42,7 @@ import kotlin.times
 
 @Singleton
 class PrinterRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val printerService: PrinterService,
     private val okHttpClient: OkHttpClient,
     private val globalSettingManager: GlobalSettingManager,
@@ -54,7 +58,38 @@ class PrinterRepository @Inject constructor(
         _status.value = newStatus
         _countText.value = "$fail/${fail + success}"
     }
-    var printerManager: PrinterManager? = null
+    lateinit var printerManager: PrinterManager
+        private set
+    private var bonImageLoaded = false
+    private var isPrinterReady = false
+    private var isBonImageReady = false
+
+    private var pendingPrint = false
+
+    suspend fun initializePrinterIfNeeded(context: Context) {
+        withContext(Dispatchers.Main) {
+            if (!::printerManager.isInitialized) {
+                printerManager = PrinterManager(context)
+                isPrinterReady = true
+            }
+            if (!isBonImageReady) {
+                ensureBonImageReady()
+            }
+        }
+    }
+
+    suspend fun ensureBonImageReady() {
+        if (bonImageLoaded) return
+
+        withContext(Dispatchers.IO) {
+            getBonImage()
+            bonImageLoaded = true
+        }
+    }
+
+    fun canAcceptPrint(): Boolean {
+        return ::printerManager.isInitialized
+    }
 
     //这里是之前集成在我们自己的快消软件
     val printQuests: Flow<List<PrintQuestEntity>> = flow {
@@ -143,15 +178,15 @@ class PrinterRepository @Inject constructor(
     }
 
     fun doPrint(content: String) {
-        printerManager?.print(
+        printerManager.print(
             content, null
         )
 
     }
 
-    fun havePrinterManager(): Boolean {
-        return printerManager != null
-    }
+//    fun havePrinterManager(): Boolean {
+//        return printerManager != null
+//    }
     suspend fun getPrintBonImage(): Bitmap? {
         return try {
             val req = Request.Builder()
@@ -170,8 +205,7 @@ class PrinterRepository @Inject constructor(
     }
 
     suspend fun getBonImage() {
-        printerManager?.bonImage = getPrintBonImage()
-
+        printerManager.bonImage = getPrintBonImage()
     }
 
     suspend fun getRestaurantInfo(): RestaurantInfoEntity? {

@@ -89,8 +89,13 @@
         <service
                 android:name=".PrinterXService"
                 android:enabled="true"
-                android:exported="false"
-                android:foregroundServiceType="connectedDevice" />
+                android:exported="true"
+                android:foregroundServiceType="connectedDevice">
+            <intent-filter>
+                <action android:name="com.innerken.aadenprinterx.IPrinterService" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

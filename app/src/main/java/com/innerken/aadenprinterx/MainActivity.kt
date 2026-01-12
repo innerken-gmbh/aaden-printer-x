@@ -84,21 +84,21 @@ class MainActivity : ComponentActivity() {
 
     @ExperimentalMaterial3Api
     override fun onCreate(savedInstanceState: Bundle?) {
-        val printerManager = PrinterManager(this)
+        //val printerManager = PrinterManager(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         val printerViewModel: PrinterViewModel by viewModels()
-        printerViewModel.initPrinterManager(printerManager)
+//        printerViewModel.initPrinterManager(printerManager)
 
         setContent {
             val focusRequester = remember { FocusRequester() }
             val context = LocalContext.current
             val activity = context as? Activity
 
-            LaunchedEffect(key1 = true) {
-                printerViewModel.setBonImage()
-            }
+//            LaunchedEffect(key1 = true) {
+//                printerViewModel.setBonImage()
+//            }
 
             val navController = rememberNavController()
             this.activityScopeNavController = navController

@@ -31,9 +31,8 @@ android {
         applicationId = "com.innerken.aadenprinterx"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.0.13"
-
+        versionCode = 15
+        versionName = "1.0.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -71,6 +70,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        aidl = true
     }
 
     composeOptions {

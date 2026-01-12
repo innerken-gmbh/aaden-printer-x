@@ -67,13 +67,13 @@ class PrinterViewModel @Inject constructor(
 //
 //    }
 
-    fun initPrinterManager(printerManager: PrinterManager) {
-        printerRepository.printerManager = printerManager
-    }
+//    fun initPrinterManager(printerManager: PrinterManager) {
+//        printerRepository.printerManager = printerManager
+//    }
 
-    suspend fun setBonImage() {
-        withContext(Dispatchers.IO) {
-            printerRepository.getBonImage()
-        }
-    }
+//    suspend fun setBonImage() {
+//        withContext(Dispatchers.IO) {
+//            printerRepository.getBonImage()
+//        }
+//    }
 }

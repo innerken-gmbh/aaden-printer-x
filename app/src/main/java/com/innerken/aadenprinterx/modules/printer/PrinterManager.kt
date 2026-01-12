@@ -10,6 +10,7 @@ import com.sunmi.printerx.PrinterSdk
 import com.sunmi.printerx.enums.PrinterInfo
 
 class PrinterManager(private val context: Context) {
+    private val appContext = context.applicationContext
     var bonImage: Bitmap? = null
     private var printer: PrinterSdk.Printer? = null
     private var isReady = false
@@ -44,6 +45,7 @@ class PrinterManager(private val context: Context) {
             Log.e ("PrinterManager", "未找到打印服务，请检查设备")
         }
     }
+    fun isReady(): Boolean = isReady
 
     fun print(content: String?, overrideLineLength: Int? = null) {
         try {
