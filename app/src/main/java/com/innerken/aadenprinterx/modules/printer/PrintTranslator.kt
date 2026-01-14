@@ -203,7 +203,9 @@ class PrintTranslator {
 
                         remaining = remaining.substring(tokenAt + tokenLen)
                     } else {
-                        segments.add(remaining to buildTextStyle(textState))
+                        if (!lineFlushed) {
+                            segments.add(remaining to buildTextStyle(textState))
+                        }
 
                         if (!lineFlushed && segments.isNotEmpty()) {
                             val lastSegCopy = segments.toList()
