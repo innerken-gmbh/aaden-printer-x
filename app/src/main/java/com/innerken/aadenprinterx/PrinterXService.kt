@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.collections.isNotEmpty
 
 @AndroidEntryPoint
 class PrinterXService : Service() {
@@ -41,18 +42,6 @@ class PrinterXService : Service() {
 
     //AIDL Binder
     private val binder = object : IPrinterService.Stub() {
-        override fun triggerPrint(): Boolean {
-            return try {
-                serviceScope.launch {
-                    printerRepository.initializePrinterIfNeeded(this@PrinterXService)
-                    if (!isPollingStarted) startPolling()
-                }
-                true
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        }
 
         override fun ping(): Boolean {
             return try {
@@ -78,19 +67,25 @@ class PrinterXService : Service() {
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
 
-        serviceScope.launch {
-            printerRepository.initializePrinterIfNeeded(this@PrinterXService)
-            startPolling()
-        }
+        startPolling()
 
         return START_STICKY
     }
 
     private fun startPolling() {
-        if (isPollingStarted) return
-        isPollingStarted = true
+        if (isPollingStarted) {
+            Log.d("PrinterXService", "Polling already started, skip")
+            return
+        }
+
+        synchronized(this) {
+            if (isPollingStarted) return
+            isPollingStarted = true
+        }
 
         serviceScope.launch {
+            printerRepository.initializePrinterIfNeeded(this@PrinterXService)
+
             val connection = printerRepository.checkConnection()
             if (!connection) {
                 printerRepository.updateStatus("No Connection/连接断开", fail, success)

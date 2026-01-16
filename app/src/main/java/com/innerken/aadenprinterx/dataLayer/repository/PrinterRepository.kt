@@ -88,7 +88,13 @@ class PrinterRepository @Inject constructor(
     }
 
     fun canAcceptPrint(): Boolean {
-        return ::printerManager.isInitialized
+        if (!::printerManager.isInitialized) return false
+
+        return try {
+            printerManager.isReady()
+        } catch (e: Exception) {
+            false
+        }
     }
 
     //这里是之前集成在我们自己的快消软件
