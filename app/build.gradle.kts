@@ -31,8 +31,8 @@ android {
         applicationId = "com.innerken.aadenprinterx"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "1.0.17"
+        versionCode = 20
+        versionName = "1.0.20"
 
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
