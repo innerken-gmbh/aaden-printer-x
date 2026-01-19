@@ -57,27 +57,53 @@ class PrinterXService : Service() {
 
     private fun startPolling() {
         serviceScope.launch {
+            var lastConnectionState: Boolean? = null
+            var currentDelay = interval
+            val maxDelay = 15_000L
+
             val connection = printerRepository.checkConnection()
             if (!connection) {
                 printerRepository.updateStatus("No Connection/连接断开", fail, success)
             }
-            while (isActive && connection) {
-                val list = printerRepository.getShangMiPrintQuest()
-                if (list.isNotEmpty() && printerRepository.havePrinterManager()) {
-                    for (quest in list) {
-                        try {
-                            printerRepository.reportStatus(quest.id)
-                            printerRepository.tryPrint(quest)
-                            success++
-                            printerRepository.updateStatus("OK", fail, success)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            fail++
-                            printerRepository.updateStatus("ERROR", fail, success)
+            while (isActive) {
+                val connected = try {
+                    printerRepository.checkConnection()
+                } catch (e: Exception) {
+                    false
+                }
+
+                if (lastConnectionState != connected) {
+                    if (!connected) {
+                        printerRepository.updateStatus("No Connection/连接断开", fail, success)
+                    } else {
+                        printerRepository.updateStatus("Connected/网络已连接", fail, success)
+                    }
+                    lastConnectionState = connected
+                }
+
+                if (connected && printerRepository.havePrinterManager()) {
+                    currentDelay = interval
+
+                    val list = printerRepository.getShangMiPrintQuest()
+                    if (list.isNotEmpty()) {
+                        for (quest in list) {
+                            try {
+                                printerRepository.reportStatus(quest.id)
+                                printerRepository.tryPrint(quest)
+                                success++
+                                printerRepository.updateStatus("OK", fail, success)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                fail++
+                                printerRepository.updateStatus("ERROR", fail, success)
+                            }
                         }
                     }
+                } else {
+                    currentDelay = (currentDelay * 2).coerceAtMost(maxDelay)
                 }
-                delay(interval)
+
+                delay(currentDelay)
             }
         }
     }
