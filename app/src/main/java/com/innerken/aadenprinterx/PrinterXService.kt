@@ -57,11 +57,24 @@ class PrinterXService : Service() {
 
     private fun startPolling() {
         serviceScope.launch {
+<<<<<<< Updated upstream
             val connection = printerRepository.checkConnection()
             if (!connection) {
                 printerRepository.updateStatus("No Connection/连接断开", fail, success)
             }
             while (isActive && connection) {
+=======
+            printerRepository.initializePrinterIfNeeded(this@PrinterXService)
+
+            while (isActive) {
+                val connection = printerRepository.checkConnection()
+                if (!connection) {
+                    printerRepository.updateStatus("No Connection/连接断开", fail, success)
+                    delay(3_000)
+                    continue
+                }
+
+>>>>>>> Stashed changes
                 val list = printerRepository.getShangMiPrintQuest()
                 if (list.isNotEmpty() && printerRepository.havePrinterManager()) {
                     for (quest in list) {
