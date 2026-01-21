@@ -18,3 +18,9 @@ fun printingThis(targetId: String?, filterSet: Set<String>, filterMode: FilterMo
 val targetPattern: Pattern = Pattern.compile("t:(.+?);")
 
 const val RefreshIntervalMs: Long = 1000
+
+enum class PrinterConnectionState(val value: Int) {
+    CONNECTING(0),
+    CONNECTED(1),
+    DISCONNECTED(2)
+}

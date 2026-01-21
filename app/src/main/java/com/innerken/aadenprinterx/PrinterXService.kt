@@ -9,9 +9,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.RemoteCallbackList
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.innerken.aadenprinterx.dataLayer.repository.PrinterRepository
+import com.innerken.aadenprinterx.modules.PrinterConnectionState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,9 @@ class PrinterXService : Service() {
 
     private var isPollingStarted = false
 
+    private val statusCallbacks =
+        RemoteCallbackList<IPrinterStatusCallback>()
+
 
     //AIDL Binder
     private val binder = object : IPrinterService.Stub() {
@@ -48,6 +53,18 @@ class PrinterXService : Service() {
                 printerRepository.canAcceptPrint()
             } catch (e: Exception) {
                 false
+            }
+        }
+
+        override fun registerStatusCallback(callback: IPrinterStatusCallback?) {
+            callback?.let {
+                statusCallbacks.register(it)
+            }
+        }
+
+        override fun unregisterStatusCallback(callback: IPrinterStatusCallback?) {
+            callback?.let {
+                statusCallbacks.unregister(it)
             }
         }
     }
@@ -68,7 +85,6 @@ class PrinterXService : Service() {
         startForeground(NOTIFICATION_ID, notification)
 
         startPolling()
-
         return START_STICKY
     }
 
@@ -86,29 +102,72 @@ class PrinterXService : Service() {
         serviceScope.launch {
             printerRepository.initializePrinterIfNeeded(this@PrinterXService)
 
+            notifyStatusChanged(PrinterConnectionState.CONNECTING)
+            var lastConnectionState: Boolean? = null
+            var currentDelay = interval
+            val maxDelay = 15_000L
+
             val connection = printerRepository.checkConnection()
             if (!connection) {
                 printerRepository.updateStatus("No Connection/连接断开", fail, success)
             }
 
-            while (isActive && connection) {
-                val list = printerRepository.getShangMiPrintQuest()
-                if (list.isNotEmpty()) {
-                    for (quest in list) {
-                        try {
-                            printerRepository.reportStatus(quest.id)
-                            printerRepository.tryPrint(quest)
-                            success++
-                            printerRepository.updateStatus("OK", fail, success)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            fail++
-                            printerRepository.updateStatus("ERROR", fail, success)
+            while (isActive) {
+                val connected = try {
+                    printerRepository.checkConnection()
+                } catch (e: Exception) {
+                    false
+                }
+
+                if (lastConnectionState != connected) {
+                    if (!connected) {
+                        printerRepository.updateStatus("No Connection/连接断开", fail, success)
+                        notifyStatusChanged(PrinterConnectionState.DISCONNECTED)
+                    } else {
+                        printerRepository.updateStatus("Connected/网络已连接", fail, success)
+                        notifyStatusChanged(PrinterConnectionState.CONNECTED)
+                    }
+                    lastConnectionState = connected
+                }
+
+                if(connected) {
+                    currentDelay = interval
+                    val list = printerRepository.getShangMiPrintQuest()
+                    if (list.isNotEmpty()) {
+                        for (quest in list) {
+                            try {
+                                printerRepository.reportStatus(quest.id)
+                                printerRepository.tryPrint(quest)
+                                success++
+                                printerRepository.updateStatus("OK", fail, success)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                fail++
+                                printerRepository.updateStatus("ERROR", fail, success)
+                            }
                         }
                     }
+                } else {
+                    currentDelay = (currentDelay * 2).coerceAtMost(maxDelay)
                 }
-                delay(interval)
+
+                delay(currentDelay)
             }
+        }
+    }
+
+    private fun notifyStatusChanged(state: PrinterConnectionState) {
+        try {
+            val n = statusCallbacks.beginBroadcast()
+            for (i in 0 until n) {
+                try {
+                    statusCallbacks.getBroadcastItem(i).onStatusChanged(state.ordinal)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } finally {
+            statusCallbacks.finishBroadcast()
         }
     }
 
