@@ -41,6 +41,9 @@ class PrinterXService : Service() {
 
     private var isPollingStarted = false
 
+    @Volatile
+    private var currentState = PrinterConnectionState.DISCONNECTED
+
     private val statusCallbacks =
         RemoteCallbackList<IPrinterStatusCallback>()
 
@@ -48,17 +51,20 @@ class PrinterXService : Service() {
     //AIDL Binder
     private val binder = object : IPrinterService.Stub() {
 
-        override fun ping(): Boolean {
+        override fun ping(): Int {
             return try {
-                printerRepository.canAcceptPrint()
+                currentState.ordinal
             } catch (e: Exception) {
-                false
+                PrinterConnectionState.DISCONNECTED.ordinal
             }
         }
 
         override fun registerStatusCallback(callback: IPrinterStatusCallback?) {
             callback?.let {
                 statusCallbacks.register(it)
+                try {
+                    it.onStatusChanged(currentState.ordinal)
+                } catch (_: Exception) {}
             }
         }
 
@@ -103,6 +109,7 @@ class PrinterXService : Service() {
             printerRepository.initializePrinterIfNeeded(this@PrinterXService)
 
             notifyStatusChanged(PrinterConnectionState.CONNECTING)
+            currentState = PrinterConnectionState.CONNECTING
             var lastConnectionState: Boolean? = null
             var currentDelay = interval
             val maxDelay = 15_000L
@@ -122,10 +129,12 @@ class PrinterXService : Service() {
                 if (lastConnectionState != connected) {
                     if (!connected) {
                         printerRepository.updateStatus("No Connection/连接断开", fail, success)
-                        notifyStatusChanged(PrinterConnectionState.DISCONNECTED)
+                        currentState = PrinterConnectionState.DISCONNECTED
+                        notifyStatusChanged(currentState)
                     } else {
                         printerRepository.updateStatus("Connected/网络已连接", fail, success)
-                        notifyStatusChanged(PrinterConnectionState.CONNECTED)
+                        currentState = PrinterConnectionState.CONNECTED
+                        notifyStatusChanged(currentState)
                     }
                     lastConnectionState = connected
                 }
